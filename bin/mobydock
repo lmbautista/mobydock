@@ -1,0 +1,12 @@
+#!/usr/bin/ruby
+# frozen_string_literal: true
+
+$LOAD_PATH << File.join(File.dirname(__FILE__), "..", "lib")
+
+require "mobydock"
+
+env, command = ARGV[0..1]
+args = ARGV[2..-1]
+
+runner = Mobydock::Runner.new(env: env, command: command, args: args)
+puts runner.call

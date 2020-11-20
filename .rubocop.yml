@@ -1,0 +1,171 @@
+require: rubocop-rails
+
+AllCops:
+  TargetRubyVersion: 2.6
+  Exclude:
+    - 'bin/**/*'
+    - db/schema.rb
+    - db/migrate/*
+    - 'vendor/**/*'
+Rails:
+  Enabled: true
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: true
+  Max: 20
+  Exclude:
+    - 'test/**/*'
+
+Metrics/BlockLength:
+  CountComments: false
+  Max: 25
+  Exclude:
+    - 'Rakefile'
+    - 'config/routes.rb'
+    - '**/*.rake'
+    - 'test/**/*'
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Layout/LineLength:
+  Max: 100
+
+Metrics/MethodLength:
+  CountComments: false
+  Max: 15
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ParameterLists:
+  Exclude:
+    - 'test/**/*'
+
+Naming/PredicateName:
+  Enabled: true
+  NamePrefix:
+    - is_
+    - not_
+    - does_
+    - can_
+  ForbiddenPrefixes:
+    - is_
+    - not_
+    - does_
+    - can_
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/DotPosition:
+  EnforcedStyle: leading
+
+Rails/Delegate:
+  EnforceForPrefixed: false
+
+Style/CollectionMethods:
+  Enabled: true
+  PreferredMethods:
+    collect: 'map'
+    collect!: 'map!'
+    inject: 'reduce'
+    detect: 'find'
+    find_all: 'select'
+
+Style/EachWithObject:
+  Enabled: false
+
+Style/GlobalVars:
+  AllowedVariables: [$fog_storage, $redis]
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: ()
+    '%r': '{}'
+    '%w': '()'
+    '%W': '()'
+    '%i': '()'
+    '%I': '()'
+
+Style/RaiseArgs:
+  EnforcedStyle: compact
+
+Style/SignalException:
+  EnforcedStyle: only_raise
+
+Style/SingleLineMethods:
+  AllowIfMethodIsEmpty: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+Style/WordArray:
+  EnforcedStyle: percent
+
+Style/NumericLiterals:
+  Enabled: true
+  MinDigits: 5
+  Strict: false
+
+Layout/EmptyLinesAroundAttributeAccessor:
+  Enabled: true
+
+Layout/SpaceAroundMethodCallOperator:
+  Enabled: true
+
+Lint/RaiseException:
+  Enabled: true
+
+Lint/StructNewOverride:
+  Enabled: true
+
+Style/HashEachMethods:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
+Style/SlicingWithRange:
+  Enabled: true
+
+Lint/DeprecatedOpenSSLConstant:
+  Enabled: true
+
+Lint/MixedRegexpCaptureTypes:
+  Enabled: true
+
+Style/RedundantRegexpCharacterClass:
+  Enabled: true
+
+Style/RedundantRegexpEscape:
+  Enabled: true
+
+Style/ExponentialNotation:
+  Enabled: false
+
+Rails/UniqueValidationWithoutIndex:
+  Enabled: false
+
+Rails/RakeEnvironment:
+  Enabled: false
