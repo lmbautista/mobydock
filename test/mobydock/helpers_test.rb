@@ -2,13 +2,15 @@
 
 require "minitest/autorun"
 require_relative "../../lib/mobydock/helpers"
+require_relative "../../lib/mobydock/configuration"
 
 module Mobydock
   class HelpersTest < Minitest::Test
     def test_global_help
-      result = Helpers.global
-      expected_result =
-        "Handle easily your dockerized proyect with Docker and Docker-machine
+      with_configuration_mocked do
+        result = Helpers.global
+        expected_result =
+          "Handle easily your dockerized proyect with Docker and Docker-machine
 
 
 Usage:
@@ -16,9 +18,7 @@ mobydock [ENVIRONMENT] [COMMAND] [ARGS...]
 
 
 Enviroments:
-development
-sandbox
-integration
+test
 
 
 Commands:
@@ -54,8 +54,9 @@ up                 Create and start containers
 update             Update for a service its image and regenerate its container
 version            Show the Docker-Compose version information"
 
-      assert result
-      assert_equal expected_result, result
+        assert result
+        assert_equal expected_result, result
+      end
     end
 
     def test_update_help
@@ -77,6 +78,14 @@ version            Show the Docker-Compose version information"
       expected_result = "mobydock [ENVIRONMENT] setup [SERVICE]"
 
       assert_equal expected_result, result
+    end
+
+    private
+
+    def with_configuration_mocked
+      Mobydock::Configuration.stub(:envs, ["test"]) do
+        yield
+      end
     end
   end
 end
