@@ -22,6 +22,7 @@ module Mobydock
                   "awk \"{print $3}\"",
                   "xargs docker rmi"].join(" | ")
       command << "docker pull #{image}"
+      command << working_path_cmd
       command << "#{docker_compose_prefix} build #{service}"
       command << "#{docker_compose_prefix} up -d #{service}"
       command.join(" ; ")
@@ -30,6 +31,7 @@ module Mobydock
     def reset(env:, service:)
       docker_compose_prefix = docker_compose_cmd_for(env)
       command = []
+      command << working_path_cmd
       command << "#{docker_compose_prefix} stop #{service}"
       command << "#{docker_compose_prefix} rm #{service}"
       command << "#{docker_compose_prefix} up -d #{service}"
@@ -39,24 +41,28 @@ module Mobydock
 
     def setup(env:, service:)
       docker_compose_prefix = docker_compose_cmd_for(env)
+      command = []
+      command << working_path_cmd
+      command << "#{docker_compose_prefix} run #{service} bin/setup"
 
-      "#{docker_compose_prefix} run #{service} bin/setup"
+      command.join(" ; ")
     end
 
     def default(env:, command:, args:)
       docker_compose_prefix = docker_compose_cmd_for(env)
       default_command = []
-      default_command << docker_compose_prefix
-      default_command << command
-      default_command << args.reverse[1..]&.join(" ")
+      default_command << working_path_cmd
+      default_command << [docker_compose_prefix, command, *args[0..-1]].join(" ")
 
-      default_command.join(" ")
+      default_command.join(" ; ")
     end
 
     def docker_compose_cmd_for(env)
-      docker_compose_file_path = File.join(Configuration.base_path, "docker-compose-#{env}.yml")
+      "docker-compose -f docker-compose-#{env}.yml"
+    end
 
-      "docker-compose -f #{docker_compose_file_path}"
+    def working_path_cmd
+      "cd #{Configuration.base_path}"
     end
 
     private_methods :docker_compose_cmd

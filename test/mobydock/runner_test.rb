@@ -218,8 +218,8 @@ module Mobydock
     end
 
     def test_default_return_default_with_service_blank
-      expected_response = "docker-compose -f "\
-        "#{base_path_mocked}/docker-compose-test.yml default "
+      expected_response = "cd #{base_path_mocked} ; docker-compose -f "\
+        "docker-compose-test.yml default"
 
       with_configuration_mocked do
         Helpers.stub(:global, expected_response) do
