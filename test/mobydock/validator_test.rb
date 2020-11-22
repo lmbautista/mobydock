@@ -14,7 +14,7 @@ module Mobydock
     end
 
     def test_blank_returns_false_with_string
-      refute ::Mobydock::Validator.blank?("my string")
+      assert_not ::Mobydock::Validator.blank?("my string")
     end
   end
 end

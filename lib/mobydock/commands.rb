@@ -48,7 +48,7 @@ module Mobydock
       default_command = []
       default_command << docker_compose_prefix
       default_command << command
-      default_command << args[0..-1]&.join(" ")
+      default_command << args.reverse[1..]&.join(" ")
 
       default_command.join(" ")
     end
