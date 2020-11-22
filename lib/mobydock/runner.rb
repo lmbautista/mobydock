@@ -10,7 +10,7 @@ module Mobydock
     include Helpers
     include Validator
 
-    def initialize(command:, env: "", args: [])
+    def initialize(command:, env:, args: [])
       @command = command
       @env = env
       @args = args
@@ -18,6 +18,7 @@ module Mobydock
     end
 
     def call
+      return Helpers.global if invalid_env?
       return perform_default if default_command?
 
       case command
@@ -36,6 +37,10 @@ module Mobydock
 
     attr_reader :command, :env, :args, :image, :service
 
+    def invalid_env?
+      !Mobydock::Configuration.envs.include?(env)
+    end
+
     def default_command?
       !Commands::LIST.include?(command)
     end
@@ -45,30 +50,23 @@ module Mobydock
                                Validator.blank?(image) ||
                                Validator.blank?(env)
 
-      update_command = Commands.update(env: env, service: service, image: image)
-      system(update_command)
+      Commands.update(env: env, service: service, image: image)
     end
 
     def perform_reset
       return Helpers.reset if Validator.blank?(service) || Validator.blank?(env)
 
-      reset_command = Commands.reset(env: env, service: service)
-      system(reset_command)
+      Commands.reset(env: env, service: service)
     end
 
     def perform_setup
       return Helpers.setup if Validator.blank?(service) || Validator.blank?(env)
 
-      setup_command = Commands.setup(env: env, service: service)
-      system(setup_command)
+      Commands.setup(env: env, service: service)
     end
 
     def perform_default
-      return Helpers.global if Validator.blank?(service) ||
-                               Validator.blank?(env)
-
-      default_command = Commands.default(env: env, command: command, args: args)
-      system(default_command)
+      Commands.default(env: env, command: command, args: args)
     end
   end
 end
