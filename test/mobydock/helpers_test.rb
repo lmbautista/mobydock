@@ -10,7 +10,7 @@ module Mobydock
       with_configuration_mocked do
         result = Helpers.global
         expected_result =
-          "Handle easily your dockerized proyect with Docker and Docker-machine
+          "echo 'Handle easily your dockerized proyect with Docker and Docker-machine
 
 
 Usage:
@@ -52,7 +52,7 @@ top                Display the running processes
 unpause            Unpause services
 up                 Create and start containers
 update             Update for a service its image and regenerate its container
-version            Show the Docker-Compose version information"
+version            Show the Docker-Compose version information'"
 
         assert result
         assert_equal expected_result, result
