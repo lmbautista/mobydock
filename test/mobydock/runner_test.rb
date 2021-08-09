@@ -26,6 +26,19 @@ module Mobydock
       end
     end
 
+    def test_help_when_command_is_nil
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: nil, env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
     def test_update_success
       expected_response = "ls"
       params = [env: env, service: service, image: image]

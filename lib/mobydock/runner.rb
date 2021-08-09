@@ -18,7 +18,7 @@ module Mobydock
     end
 
     def call
-      return Helpers.global if invalid_env?
+      return Helpers.global if invalid_env? || command.nil?
       return perform_default if default_command?
 
       case command
@@ -28,7 +28,7 @@ module Mobydock
         perform_reset
       when Commands::SETUP
         perform_setup
-      when Commands::HELP, nil
+      when Commands::HELP
         Helpers.global
       end
     end
