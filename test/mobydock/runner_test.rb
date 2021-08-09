@@ -39,6 +39,21 @@ module Mobydock
       end
     end
 
+    def test_docker_not_running
+      expected_response = "helper docker_not_running"
+
+      with_configuration_mocked do
+        Helpers.stub(:docker_not_running, expected_response) do
+          runner = Runner.new(command: nil, env: nil)
+          runner.stub(:docker_running?, true) do
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
     def test_update_success
       expected_response = "ls"
       params = [env: env, service: service, image: image]

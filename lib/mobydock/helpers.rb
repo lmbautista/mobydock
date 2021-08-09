@@ -50,6 +50,10 @@ module Mobydock
       "echo '#{help_text.join("\n")}'"
     end
 
+    def docker_not_running
+      "echo 'Docker does not seem to be running'"
+    end
+
     def update
       "mobydock [ENVIRONMENT] update [SERVICE] [IMAGE]"
     end

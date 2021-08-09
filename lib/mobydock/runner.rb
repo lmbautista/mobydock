@@ -18,6 +18,7 @@ module Mobydock
     end
 
     def call
+      return Helpers.docker_not_running unless docker_running?
       return Helpers.global if invalid_env? || command.nil?
       return perform_default if default_command?
 
@@ -36,6 +37,10 @@ module Mobydock
     private
 
     attr_reader :command, :env, :args, :image, :service
+
+    def docker_running?
+      system("docker info >/dev/null 2>&1")
+    end
 
     def invalid_env?
       !Mobydock::Configuration.envs.include?(env)

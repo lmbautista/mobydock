@@ -59,6 +59,13 @@ version            Show the Docker-Compose version information'"
       end
     end
 
+    def test_docker_not_running
+      result = Helpers.docker_not_running
+      expected_result = "echo 'Docker does not seem to be running'"
+
+      assert_equal expected_result, result
+    end
+
     def test_update_help
       result = Helpers.update
       expected_result = "mobydock [ENVIRONMENT] update [SERVICE] [IMAGE]"
