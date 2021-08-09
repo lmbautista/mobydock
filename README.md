@@ -85,5 +85,4 @@ mobydock [environment] reset [service]
 mobydock [environment] update [service] [image]
 ```
 
-
 [logo-mobydock]: https://user-images.githubusercontent.com/6224703/99860828-90d58a80-2b94-11eb-8a9f-aa5171bc4ad9.png "Mobydock"
