@@ -52,7 +52,7 @@ module Mobydock
       docker_compose_prefix = docker_compose_cmd_for(env)
       default_command = []
       default_command << working_path_cmd
-      default_command << [docker_compose_prefix, command, *args[0..-1]].join(" ")
+      default_command << [docker_compose_prefix, command, *args[0..]].join(" ")
 
       default_command.join(" ; ")
     end
