@@ -25,10 +25,14 @@ module Mobydock
       case command
       when Commands::UPDATE
         perform_update
+      when Commands::UPDATE_ALL
+        perform_update_all
       when Commands::RESET
         perform_reset
       when Commands::SETUP
         perform_setup
+      when Commands::COMPILE_ASSETS
+        perform_compile_assets
       when Commands::HELP
         Helpers.global
       end
@@ -58,6 +62,19 @@ module Mobydock
       Commands.update(env: env, service: service, image: image)
     end
 
+    def perform_update_all
+      return Helpers.update_all if Validator.blank?(env) || args.empty?
+
+      services_images = {}
+      args.each_slice(2) do |service, image|
+        return Helpers.update_all if Validator.blank?(service) || Validator.blank?(image)
+
+        services_images[service] = image
+      end
+
+      Commands.update_all(env: env, services_images: services_images)
+    end
+
     def perform_reset
       return Helpers.reset if Validator.blank?(service) || Validator.blank?(env)
 
@@ -68,6 +85,12 @@ module Mobydock
       return Helpers.setup if Validator.blank?(service) || Validator.blank?(env)
 
       Commands.setup(env: env, service: service)
+    end
+
+    def perform_compile_assets
+      return Helpers.compile_assets if Validator.blank?(service) || Validator.blank?(env)
+
+      Commands.compile_assets(env: env, service: service)
     end
 
     def perform_default

@@ -39,12 +39,14 @@ module Mobydock
       help_text << "run                Run a one-off command"
       help_text << "scale              Set number of containers for a service"
       help_text << "setup              Run for a service its bin/setup script"
+      help_text << "compile-assets     Compile Rails assets for production"
       help_text << "start              Start services"
       help_text << "stop               Stop services"
       help_text << "top                Display the running processes"
       help_text << "unpause            Unpause services"
       help_text << "up                 Create and start containers"
       help_text << "update             Update for a service its image and regenerate its container"
+      help_text << "update-all         Update multiple services and regenerate the entire stack"
       help_text << "version            Show the Docker-Compose version information"
 
       "echo '#{help_text.join("\n")}'"
@@ -58,12 +60,20 @@ module Mobydock
       "mobydock [ENVIRONMENT] update [SERVICE] [IMAGE]"
     end
 
+    def update_all
+      "mobydock [ENVIRONMENT] update-all [SERVICE1] [IMAGE1] [SERVICE2] [IMAGE2] ..."
+    end
+
     def reset
       "mobydock [ENVIRONMENT] reset [SERVICE]"
     end
 
     def setup
       "mobydock [ENVIRONMENT] setup [SERVICE]"
+    end
+
+    def compile_assets
+      "mobydock [ENVIRONMENT] compile-assets [SERVICE]"
     end
   end
 end

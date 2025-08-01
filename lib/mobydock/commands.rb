@@ -4,8 +4,10 @@ module Mobydock
   module Commands
     LIST = [
       UPDATE = "update",
+      UPDATE_ALL = "update-all",
       RESET = "reset",
       SETUP = "setup",
+      COMPILE_ASSETS = "compile-assets",
       HELP = "help"
     ].freeze
 
@@ -15,16 +17,37 @@ module Mobydock
       docker_compose_prefix = docker_compose_cmd_for(env)
       command = []
       command << "docker login"
-      command << "docker stop #{service}"
-      command << "docker rm #{service}"
-      command << ["docker images -a",
-                  "grep \"#{image}\"",
-                  "awk \"{print $3}\"",
-                  "xargs docker rmi"].join(" | ")
-      command << "docker pull #{image}"
       command << working_path_cmd
-      command << "#{docker_compose_prefix} build #{service}"
+      command << "#{docker_compose_prefix} stop #{service}"
+      command << "#{docker_compose_prefix} rm -f #{service}"
+      command << ["docker images --filter=\"reference=#{image}\" -q",
+                  "xargs -r docker rmi -f"].join(" | ")
+      command << "docker pull #{image}"
+      command << "#{docker_compose_prefix} build --no-cache --pull #{service}"
       command << "#{docker_compose_prefix} up -d #{service}"
+      command.join(" ; ")
+    end
+
+    def update_all(env:, services_images:)
+      docker_compose_prefix = docker_compose_cmd_for(env)
+      command = []
+      command << "docker login"
+      command << working_path_cmd
+
+      services = services_images.keys.join(" ")
+
+      command << "#{docker_compose_prefix} stop #{services}"
+      command << "#{docker_compose_prefix} rm -f #{services}"
+
+      services_images.each do |service, image|
+        command << ["docker images --filter=\"reference=#{image}\" -q",
+                    "xargs -r docker rmi -f"].join(" | ")
+        command << "docker pull #{image}"
+      end
+
+      command << "#{docker_compose_prefix} build --no-cache --pull #{services}"
+      command << "#{docker_compose_prefix} up -d #{services}"
+
       command.join(" ; ")
     end
 
@@ -44,6 +67,17 @@ module Mobydock
       command = []
       command << working_path_cmd
       command << "#{docker_compose_prefix} run #{service} bin/setup"
+
+      command.join(" ; ")
+    end
+
+    def compile_assets(env:, service:)
+      docker_compose_prefix = docker_compose_cmd_for(env)
+      command = []
+      command << working_path_cmd
+      command << "echo 'Compiling assets for #{env}...'"
+      command << "#{docker_compose_prefix} exec #{service} rails assets:precompile RAILS_ENV=#{env == 'dev' ? 'development' : 'production'}"
+      command << "echo '✅ Assets compiled'"
 
       command.join(" ; ")
     end
