@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require "byebug"
 require_relative "../../lib/mobydock/runner"
 require_relative "../../lib/mobydock/helpers"
 require_relative "../../lib/mobydock/commands"
@@ -39,13 +38,39 @@ module Mobydock
       end
     end
 
+    def test_machine_ls
+      expected_response = "machine-ls-command"
+
+      Commands.stub(:machine_ls, expected_response) do
+        runner = Runner.new(command: nil, env: "ls")
+        response = runner.call
+
+        assert_equal expected_response, response
+      end
+    end
+
+    def test_initialize_handles_nil_args
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: nil, env: nil, args: nil)
+          runner.stub(:docker_running?, true) do
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
     def test_docker_not_running
       expected_response = "helper docker_not_running"
 
       with_configuration_mocked do
         Helpers.stub(:docker_not_running, expected_response) do
           runner = Runner.new(command: nil, env: nil)
-          runner.stub(:docker_running?, true) do
+          runner.stub(:docker_running?, false) do
             response = runner.call
 
             assert_equal expected_response, response
@@ -56,22 +81,13 @@ module Mobydock
 
     def test_update_success
       expected_response = "ls"
-      params = [env: env, service: service, image: image]
-
-      command_update_mock = MiniTest::Mock.new
-      command_update_mock.expect(:call, expected_response, params)
-
-      exec_mock = MiniTest::Mock.new
-      exec_mock.expect(:call, expected_response, [expected_response])
 
       with_configuration_mocked do
-        Kernel.stub(:exec, exec_mock) do
-          Commands.stub(:update, command_update_mock) do
-            runner = Runner.new(command: "update", env: env, args: args)
-            response = runner.call
+        Commands.stub(:update, expected_response) do
+          runner = Runner.new(command: "update", env: env, args: args)
+          response = runner.call
 
-            assert response
-          end
+          assert_equal expected_response, response
         end
       end
     end
@@ -116,22 +132,13 @@ module Mobydock
 
     def test_reset_success
       expected_response = "ls"
-      params = [env: env, service: service]
-
-      command_reset_mock = MiniTest::Mock.new
-      command_reset_mock.expect(:call, expected_response, params)
-
-      exec_mock = MiniTest::Mock.new
-      exec_mock.expect(:call, expected_response, [expected_response])
 
       with_configuration_mocked do
-        Kernel.stub(:exec, exec_mock) do
-          Commands.stub(:reset, command_reset_mock) do
-            runner = Runner.new(command: "reset", env: env, args: [service])
-            response = runner.call
+        Commands.stub(:reset, expected_response) do
+          runner = Runner.new(command: "reset", env: env, args: [service])
+          response = runner.call
 
-            assert response
-          end
+          assert_equal expected_response, response
         end
       end
     end
@@ -164,22 +171,13 @@ module Mobydock
 
     def test_setup_success
       expected_response = "ls"
-      params = [env: env, service: service]
-
-      command_setup_mock = MiniTest::Mock.new
-      command_setup_mock.expect(:call, expected_response, params)
-
-      exec_mock = MiniTest::Mock.new
-      exec_mock.expect(:call, expected_response, [expected_response])
 
       with_configuration_mocked do
-        Kernel.stub(:exec, exec_mock) do
-          Commands.stub(:setup, command_setup_mock) do
-            runner = Runner.new(command: "setup", env: env, args: [service])
-            response = runner.call
+        Commands.stub(:setup, expected_response) do
+          runner = Runner.new(command: "setup", env: env, args: [service])
+          response = runner.call
 
-            assert response
-          end
+          assert_equal expected_response, response
         end
       end
     end
@@ -213,21 +211,13 @@ module Mobydock
     def test_default_success
       expected_response = "ls"
       command = "whatever"
-      params = [env: env, command: command, args: args]
 
-      command_default_mock = MiniTest::Mock.new
-      command_default_mock.expect(:call, expected_response, params)
-
-      exec_mock = MiniTest::Mock.new
-      exec_mock.expect(:call, expected_response, [expected_response])
       with_configuration_mocked do
-        Kernel.stub(:exec, exec_mock) do
-          Commands.stub(:default, command_default_mock) do
-            runner = Runner.new(command: command, env: env, args: args)
-            response = runner.call
+        Commands.stub(:default, expected_response) do
+          runner = Runner.new(command: command, env: env, args: args)
+          response = runner.call
 
-            assert response
-          end
+          assert_equal expected_response, response
         end
       end
     end
@@ -259,6 +249,381 @@ module Mobydock
       end
     end
 
+    def test_start_success
+      expected_response = "start-command"
+
+      with_configuration_mocked do
+        Commands.stub(:start, expected_response) do
+          runner = Runner.new(command: "start", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_start_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "start", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_launch_success
+      expected_response = "launch-command"
+
+      with_configuration_mocked do
+        Commands.stub(:launch, expected_response) do
+          runner = Runner.new(command: "launch", env: env, args: ["admin@example.com"])
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_launch_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "launch", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_launch_return_helper_without_email_for_non_dev
+      expected_response = "helper launch"
+
+      with_configuration_mocked do
+        Helpers.stub(:launch, expected_response) do
+          runner = Runner.new(command: "launch", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_login_success
+      expected_response = "docker-machine env plantcare-beta"
+
+      with_configuration_mocked do
+        Commands.stub(:login, expected_response) do
+          runner = Runner.new(command: "login", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_login_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "login", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_logout_success
+      expected_response = "docker-machine env -u ; echo 'unset MOBYDOCK_ENV'"
+
+      with_configuration_mocked do
+        Commands.stub(:logout, expected_response) do
+          runner = Runner.new(command: "logout", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_logout_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "logout", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_destroy_blocked_without_force
+      expected_response = "destroy protected"
+
+      with_configuration_mocked do
+        Helpers.stub(:destroy_protected, expected_response) do
+          runner = Runner.new(command: "destroy", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_destroy_success_with_force
+      expected_response = "destroy-command"
+
+      with_configuration_mocked do
+        Commands.stub(:destroy, expected_response) do
+          runner = Runner.new(command: "destroy", env: env, args: %w(--force))
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_destroy_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "destroy", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_backup_db_success
+      expected_response = "backup-db-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, "db") do
+          Commands.stub(:backup_db, expected_response) do
+            runner = Runner.new(command: "backup-db", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_backup_db_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "backup-db", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_backup_db_return_helper_without_db_service
+      expected_response = "helper backup_db"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, nil) do
+          Helpers.stub(:backup_db, expected_response) do
+            runner = Runner.new(command: "backup-db", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_restore_db_success
+      expected_response = "restore-db-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, "db") do
+          Commands.stub(:restore_db, expected_response) do
+            runner = Runner.new(command: "restore-db", env: env, args: ["backups/dump.sql"])
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_restore_db_return_helper_without_backup_file
+      expected_response = "helper restore_db"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, "db") do
+          Helpers.stub(:restore_db, expected_response) do
+            runner = Runner.new(command: "restore-db", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_restore_db_return_helper_without_db_service
+      expected_response = "helper restore_db"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, nil) do
+          Helpers.stub(:restore_db, expected_response) do
+            runner = Runner.new(command: "restore-db", env: env, args: ["backups/dump.sql"])
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_db_protected_blocks_reset_on_protected_env
+      expected_response = "db protected"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Helpers.stub(:db_protected, expected_response) do
+              runner = Runner.new(command: "reset", env: env, args: ["db"])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_db_protected_allows_reset_with_force
+      expected_response = "reset-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Commands.stub(:reset, expected_response) do
+              runner = Runner.new(command: "reset", env: env, args: %w(db --force))
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_db_protected_allows_reset_of_other_service
+      expected_response = "reset-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Commands.stub(:reset, expected_response) do
+              runner = Runner.new(command: "reset", env: env, args: ["web"])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_db_protected_blocks_destructive_passthrough_on_db
+      expected_response = "db protected"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Helpers.stub(:db_protected, expected_response) do
+              runner = Runner.new(command: "rm", env: env, args: ["db"])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_db_protected_blocks_restore_db_without_force
+      expected_response = "db protected"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Helpers.stub(:db_protected, expected_response) do
+              runner = Runner.new(command: "restore-db", env: env, args: ["backups/dump.sql"])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_deploy_success
+      expected_response = "deploy-command"
+      services_images = { "api-plantcare" => "lmbautista/api-plantcare:latest" }
+
+      with_configuration_mocked do
+        Configuration.stub(:deploy_services, services_images) do
+          Configuration.stub(:migrate_service, nil) do
+            Commands.stub(:deploy, expected_response) do
+              runner = Runner.new(command: "deploy", env: env)
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_deploy_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "deploy", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_deploy_return_helper_without_deploy_services
+      expected_response = "helper deploy"
+
+      with_configuration_mocked do
+        Configuration.stub(:deploy_services, {}) do
+          Helpers.stub(:deploy, expected_response) do
+            runner = Runner.new(command: "deploy", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
     private
 
     def env
@@ -280,7 +645,9 @@ module Mobydock
     def with_configuration_mocked
       Mobydock::Configuration.stub(:envs, ["test"]) do
         Mobydock::Configuration.stub(:base_path, base_path_mocked) do
-          yield
+          Mobydock::Configuration.stub(:machine_for, nil) do
+            yield
+          end
         end
       end
     end

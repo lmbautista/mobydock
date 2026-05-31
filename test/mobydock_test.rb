@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-class MobydockTest < ActiveSupport::TestCase
-  def test_success
-    # noop
-  end
-end
+require "minitest/autorun"
+
+Dir[File.join(__dir__, "mobydock", "*_test.rb")].sort.each { |file| require file }

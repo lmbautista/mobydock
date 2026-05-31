@@ -47,6 +47,18 @@ module Mobydock
       help_text << "up                 Create and start containers"
       help_text << "update             Update for a service its image and regenerate its container"
       help_text << "update-all         Update multiple services and regenerate the entire stack"
+      help_text << "setup-ssl          Set up HTTPS (mkcert for dev, LetsEncrypt for production)"
+      help_text << "start              Start or create docker-machine for env"
+      help_text << "login              Activate docker-machine env (eval $(mobydock [ENV] login))"
+      help_text << "logout             Deactivate docker-machine env and clear MOBYDOCK_ENV"
+      help_text << "ls                 List the docker-machines (mobydock ls -> docker-machine ls)"
+      help_text << "destroy            Remove the docker-machine for env and terminate " \
+                 "its instance (requires --force)"
+      help_text << "launch             Create a new docker-machine EC2 instance for env "\
+                 "(and assign its Elastic IP if configured)"
+      help_text << "backup-db          Dump MySQL database and save locally to backups/"
+      help_text << "restore-db         Restore MySQL database from a local dump file"
+      help_text << "deploy             Pull new images, migrate DB, rebuild and restart services"
       help_text << "version            Show the Docker-Compose version information"
 
       "echo '#{help_text.join("\n")}'"
@@ -74,6 +86,73 @@ module Mobydock
 
     def compile_assets
       "mobydock [ENVIRONMENT] compile-assets [SERVICE]"
+    end
+
+    def setup_ssl
+      "mobydock [ENVIRONMENT] setup-ssl           # development (mkcert)\n" \
+      "mobydock [ENVIRONMENT] setup-ssl [EMAIL]   # production (LetsEncrypt)"
+    end
+
+    def start
+      "mobydock [ENVIRONMENT] start"
+    end
+
+    def login
+      "eval $(mobydock [ENVIRONMENT] login)"
+    end
+
+    def logout
+      "eval $(mobydock [ENVIRONMENT] logout)"
+    end
+
+    def destroy
+      "mobydock [ENVIRONMENT] destroy --force"
+    end
+
+    def destroy_protected(env)
+      message = []
+      message << "🛡️  This removes the docker-machine for '#{env}' and"
+      message << "terminates its remote instance. This cannot be undone."
+      message << ""
+      message << "Re-run with --force if you really intend to do this:"
+      message << "  mobydock #{env} destroy --force"
+      "echo '#{message.join("\n")}'"
+    end
+
+    def launch
+      "mobydock dev launch                          # development\n" \
+      "mobydock [ENVIRONMENT] launch [EMAIL]        # production (LetsEncrypt)"
+    end
+
+    def backup_db
+      "mobydock [ENVIRONMENT] backup-db"
+    end
+
+    def restore_db
+      "mobydock [ENVIRONMENT] restore-db [BACKUP_FILE]"
+    end
+
+    def db_protected(env)
+      message = []
+      message << "🛡️  Database protection: this operation would affect the '#{env}' database,"
+      message << "which is a protected environment (see MOBYDOCK_PROTECTED_ENVS)."
+      message << ""
+      message << "If you really intend to do this, re-run the same command with --force."
+      "echo '#{message.join("\n")}'"
+    end
+
+    def deploy
+      message = []
+      message << "❌ deploy is not configured: no services found for this environment."
+      message << ""
+      message << "Set the services and images to deploy (comma-separated, service=image),"
+      message << "either per environment (preferred) or globally as a fallback:"
+      message << "  export MOBYDOCK_DEPLOY_SERVICES_PRD=service1=image1,service2=image2"
+      message << "  export MOBYDOCK_DEPLOY_SERVICES=service1=image1,service2=image2"
+      message << ""
+      message << "Optionally run migrations on a service before bringing the stack up:"
+      message << "  export MOBYDOCK_MIGRATE_SERVICE_PRD=service"
+      "echo '#{message.join("\n")}'"
     end
   end
 end
