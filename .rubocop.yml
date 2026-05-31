@@ -1,7 +1,9 @@
-require: rubocop-rails
+plugins: rubocop-rails
 
 AllCops:
-  TargetRubyVersion: 2.6
+  TargetRubyVersion: 3.1
+  NewCops: disable
+  SuggestExtensions: false
   Exclude:
     - 'bin/**/*'
     - db/schema.rb
@@ -31,11 +33,16 @@ Metrics/BlockLength:
 Metrics/ClassLength:
   Enabled: false
 
+Metrics/ModuleLength:
+  Enabled: false
+
 Metrics/CyclomaticComplexity:
   Max: 10
 
 Layout/LineLength:
   Max: 100
+  Exclude:
+    - 'test/**/*'
 
 Metrics/MethodLength:
   CountComments: false
@@ -47,7 +54,7 @@ Metrics/ParameterLists:
   Exclude:
     - 'test/**/*'
 
-Naming/PredicateName:
+Naming/PredicatePrefix:
   Enabled: true
   NamePrefix:
     - is_
@@ -171,4 +178,9 @@ Rails/UniqueValidationWithoutIndex:
   Enabled: false
 
 Rails/RakeEnvironment:
+  Enabled: false
+
+# This is a plain Minitest suite (no Rails test helpers). `assert_not` is not
+# defined here and raises at runtime, so `refute` is the correct assertion.
+Rails/RefuteMethods:
   Enabled: false
