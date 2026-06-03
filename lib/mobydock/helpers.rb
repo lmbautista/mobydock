@@ -57,8 +57,10 @@ module Mobydock
       help_text << "launch             Create a new docker-machine EC2 instance for env "\
                  "(and assign its Elastic IP if configured)"
       help_text << "backup-db          Dump MySQL database and save locally to backups/"
+      help_text << "backup-db-ls       List the local database backups for the environment"
       help_text << "restore-db         Restore MySQL database from a local dump file"
       help_text << "deploy             Pull new images, migrate DB, rebuild and restart services"
+      help_text << "rebuild            Remove service images (except db) and rebuild from scratch"
       help_text << "version            Show the Docker-Compose version information"
 
       "echo '#{help_text.join("\n")}'"
@@ -128,8 +130,16 @@ module Mobydock
       "mobydock [ENVIRONMENT] backup-db"
     end
 
+    def backup_db_ls
+      "mobydock [ENVIRONMENT] backup-db-ls"
+    end
+
     def restore_db
       "mobydock [ENVIRONMENT] restore-db [BACKUP_FILE]"
+    end
+
+    def rebuild
+      "mobydock [ENVIRONMENT] rebuild"
     end
 
     def db_protected(env)

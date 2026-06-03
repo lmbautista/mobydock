@@ -15,8 +15,10 @@ module Mobydock
       DESTROY = "destroy",
       LAUNCH = "launch",
       BACKUP_DB = "backup-db",
+      BACKUP_DB_LS = "backup-db-ls",
       RESTORE_DB = "restore-db",
       DEPLOY = "deploy",
+      REBUILD = "rebuild",
       HELP = "help"
     ].freeze
 
@@ -120,7 +122,7 @@ module Mobydock
       command << working_path_cmd
       command << "echo '🚀 Setting up mkcert certificate for development...'"
       command << "mkdir -p compose/gateway-plantcare/certs"
-      command << "source ./.env && mkcert" \
+      command << "#{source_env_file_cmd(env)} && mkcert" \
                  " -cert-file compose/gateway-plantcare/certs/gateway-plantcare.crt" \
                  " -key-file compose/gateway-plantcare/certs/gateway-plantcare.key" \
                  " dev.$GATEWAY_HOST api.dev.$GATEWAY_HOST"
@@ -139,7 +141,8 @@ module Mobydock
       command << "#{docker_compose_prefix} up -d gateway-plantcare"
       command << "sleep 5"
       command << "echo \"📦 Obtaining Let's Encrypt certificate...\""
-      command << "source ./.env && #{docker_compose_prefix} run --rm --entrypoint certbot" \
+      command << "#{source_env_file_cmd(env)} && #{docker_compose_prefix}" \
+                 " run --rm --entrypoint certbot" \
                  " certbot certonly --webroot -w /var/www/certbot" \
                  " -d $GATEWAY_HOST -d www.$GATEWAY_HOST -d api.$GATEWAY_HOST" \
                  " --email #{email} --agree-tos --non-interactive"
@@ -191,7 +194,7 @@ module Mobydock
       "docker-machine rm -y #{machine} && echo '✅ Machine #{machine} removed'"
     end
 
-    def launch(env:, email: nil)
+    def launch(env:, email: nil, migrate_service: nil)
       machine = Configuration.machine_for(env)
       return "echo 'No docker-machine configured for #{env}'" unless machine
 
@@ -207,24 +210,35 @@ module Mobydock
       "echo '✅ Machine #{machine} created' ; " \
       "#{assign_elastic_ip_cmd(env, machine)}" \
       "fi ; " \
-      "#{setup_ssl(env: env, email: email)}"
+      "#{setup_ssl(env: env, email: email)}" \
+      "#{setup_db_cmd(env, migrate_service)}"
+    end
+
+    def setup_db_cmd(env, migrate_service)
+      return "" unless migrate_service
+
+      docker_compose_prefix = docker_compose_cmd_for(env)
+      " ; echo '📦 Setting up database on #{migrate_service}...'" \
+      " ; #{docker_compose_prefix} run --rm #{migrate_service} rails db:create db:migrate db:seed" \
+      " ; echo '✅ Database ready'"
     end
 
     def assign_elastic_ip_cmd(env, machine) # rubocop:disable Metrics/MethodLength
       alloc_id = Configuration.elastic_ip_alloc(env)
       return "" unless alloc_id
 
+      region = Configuration.aws_region(env)
+      region_opt = region ? " --region #{region}" : ""
       config = "${MACHINE_STORAGE_PATH:-$HOME/.docker/machine}/machines/#{machine}/config.json"
       "echo 'Assigning Elastic IP to #{machine}...' ; " \
       "INSTANCE_ID=$(docker-machine inspect #{machine} --format '{{.Driver.InstanceId}}') ; " \
       "OLD_IP=$(docker-machine ip #{machine}) ; " \
-      "ELASTIC_IP=$(aws ec2 describe-addresses --allocation-ids #{alloc_id} " \
+      "aws ec2 associate-address#{region_opt} " \
+      "--instance-id $INSTANCE_ID --allocation-id #{alloc_id} " \
+      "|| { echo '❌ Failed to associate Elastic IP to #{machine}' ; exit 1 ; } ; " \
+      "ELASTIC_IP=$(aws ec2 describe-addresses#{region_opt} --allocation-ids #{alloc_id} " \
       "--query 'Addresses[0].PublicIp' --output text) ; " \
-      "docker-machine ssh #{machine} " \
-      "\"sudo sed -i 's/$OLD_IP/$ELASTIC_IP/' /var/lib/boot2docker/profile " \
-      "&& sudo /etc/init.d/docker restart\" ; " \
       "sed -i.bak \"s/$OLD_IP/$ELASTIC_IP/\" #{config} ; " \
-      "aws ec2 associate-address --instance-id $INSTANCE_ID --allocation-id #{alloc_id} ; " \
       "sleep 5 ; " \
       "docker-machine regenerate-certs -f #{machine} ; " \
       "echo \"✅ Elastic IP $ELASTIC_IP assigned to #{machine}\" ; "
@@ -238,10 +252,19 @@ module Mobydock
       command << working_path_cmd
       command << "mkdir -p backups"
       command << "echo 'Starting database backup for #{env}...'"
-      command << "source ./.env && #{docker_compose_prefix} exec -T #{service} " \
-                 "mysqldump -u\"$MYSQL_USER\" -p\"$MYSQL_PASSWORD\" \"$MYSQL_DATABASE\" " \
-                 "> backups/backup-#{env}-$(date +%Y%m%d-%H%M%S).sql"
-      command << "echo '✅ Backup saved to backups/'"
+      command << "BACKUP_FILE=backups/backup-#{env}-$(date +%Y%m%d-%H%M%S).sql"
+      command << "#{source_env_file_cmd(env)} && #{docker_compose_prefix} exec -T #{service} " \
+                 "mysqldump -u\"$MYSQL_USER\" -p\"$MYSQL_ROOT_PASSWORD\" \"$MYSQL_DATABASE\" " \
+                 "> $BACKUP_FILE"
+      command << "echo \"✅ Backup saved to $BACKUP_FILE\""
+      command.compact.join(" ; ")
+    end
+
+    def backup_db_ls(env:)
+      command = []
+      command << working_path_cmd
+      command << "echo '📂 Backups for #{env}:'"
+      command << "ls -lh backups/backup-#{env}-*.sql"
       command.compact.join(" ; ")
     end
 
@@ -252,9 +275,9 @@ module Mobydock
       command << machine_activate_cmd(env)
       command << working_path_cmd
       command << "echo '🚀 Restoring database for #{env} from #{backup_file}...'"
-      command << "source ./.env && cat #{backup_file} | " \
+      command << "#{source_env_file_cmd(env)} && cat #{backup_file} | " \
                  "#{docker_compose_prefix} exec -T #{service} " \
-                 "mysql -u\"$MYSQL_USER\" -p\"$MYSQL_PASSWORD\" \"$MYSQL_DATABASE\""
+                 "mysql -u\"$MYSQL_USER\" -p\"$MYSQL_ROOT_PASSWORD\" \"$MYSQL_DATABASE\""
       command << "echo '✅ Database restored'"
       command.compact.join(" ; ")
     end
@@ -264,7 +287,6 @@ module Mobydock
       command = []
       command << machine_activate_cmd(env)
       command << "echo '🚀 Deploying to #{env}...'"
-      command << "docker login"
       command << working_path_cmd
 
       services = services_images.keys.join(" ")
@@ -288,6 +310,24 @@ module Mobydock
       command.compact.join(" ; ")
     end
 
+    def rebuild(env:)
+      docker_compose_prefix = docker_compose_cmd_for(env)
+      db_service = Configuration.db_service
+      services = "$(#{docker_compose_prefix} config --services | grep -vx #{db_service})"
+      command = []
+      command << machine_activate_cmd(env)
+      command << working_path_cmd
+      command << "echo '🔨 Rebuilding services for #{env} (excluding #{db_service})...'"
+      command << "SERVICES=#{services}"
+      command << "#{docker_compose_prefix} stop $SERVICES"
+      command << "#{docker_compose_prefix} rm -f $SERVICES"
+      command << "#{docker_compose_prefix} images -q $SERVICES | xargs -r docker rmi -f"
+      command << "#{docker_compose_prefix} build --no-cache $SERVICES"
+      command << "#{docker_compose_prefix} up -d $SERVICES"
+      command << "echo '✅ Rebuild complete'"
+      command.compact.join(" ; ")
+    end
+
     def default(env:, command:, args:)
       docker_compose_prefix = docker_compose_cmd_for(env)
       default_command = []
@@ -296,6 +336,18 @@ module Mobydock
       default_command << [docker_compose_prefix, command, *args[0..]].join(" ")
 
       default_command.compact.join(" ; ")
+    end
+
+    def stop_excluding_db(env:, command:)
+      docker_compose_prefix = docker_compose_cmd_for(env)
+      db_service = Configuration.db_service
+      services = "$(#{docker_compose_prefix} config --services | grep -vx #{db_service})"
+      command_list = []
+      command_list << machine_activate_cmd(env)
+      command_list << working_path_cmd
+      command_list << "echo '🛡️  Skipping #{db_service}. Pass --force to include it.'"
+      command_list << "#{docker_compose_prefix} #{command} #{services}"
+      command_list.compact.join(" ; ")
     end
 
     def docker_compose_cmd_for(env)
@@ -314,6 +366,10 @@ module Mobydock
 
     def working_path_cmd
       "cd #{Configuration.base_path}"
+    end
+
+    def source_env_file_cmd(env)
+      "ENV_FILE=$([ -f ./.env.#{env} ] && echo ./.env.#{env} || echo ./.env) && source $ENV_FILE"
     end
 
     private_methods :docker_compose_cmd

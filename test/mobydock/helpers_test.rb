@@ -53,8 +53,10 @@ module Mobydock
           "launch             Create a new docker-machine EC2 instance for env " \
           "(and assign its Elastic IP if configured)\n" \
           "backup-db          Dump MySQL database and save locally to backups/\n" \
+          "backup-db-ls       List the local database backups for the environment\n" \
           "restore-db         Restore MySQL database from a local dump file\n" \
           "deploy             Pull new images, migrate DB, rebuild and restart services\n" \
+          "rebuild            Remove service images (except db) and rebuild from scratch\n" \
           "version            Show the Docker-Compose version information'"
 
         assert result
@@ -166,9 +168,23 @@ module Mobydock
       assert_equal expected_result, result
     end
 
+    def test_backup_db_ls_help
+      result = Helpers.backup_db_ls
+      expected_result = "mobydock [ENVIRONMENT] backup-db-ls"
+
+      assert_equal expected_result, result
+    end
+
     def test_restore_db_help
       result = Helpers.restore_db
       expected_result = "mobydock [ENVIRONMENT] restore-db [BACKUP_FILE]"
+
+      assert_equal expected_result, result
+    end
+
+    def test_rebuild_help
+      result = Helpers.rebuild
+      expected_result = "mobydock [ENVIRONMENT] rebuild"
 
       assert_equal expected_result, result
     end

@@ -11,7 +11,8 @@ module Mobydock
     include Helpers
     include Validator
 
-    DESTRUCTIVE_PASSTHROUGH = %w(down rm stop kill).freeze
+    DESTRUCTIVE_PASSTHROUGH = %w(down rm).freeze
+    STOP_PASSTHROUGH = %w(stop kill).freeze
 
     def initialize(command:, env:, args: [])
       args ||= []
@@ -50,8 +51,10 @@ module Mobydock
       when Commands::DESTROY then perform_destroy
       when Commands::LAUNCH then perform_launch
       when Commands::BACKUP_DB then perform_backup_db
+      when Commands::BACKUP_DB_LS then perform_backup_db_ls
       when Commands::RESTORE_DB then perform_restore_db
       when Commands::DEPLOY then perform_deploy
+      when Commands::REBUILD then perform_rebuild
       when Commands::HELP then Helpers.global
       end
     end
@@ -87,11 +90,15 @@ module Mobydock
       when Commands::RESET, Commands::UPDATE then [service]
       when Commands::UPDATE_ALL then args.each_slice(2).map(&:first)
       when Commands::RESTORE_DB then [Configuration.db_service]
-      else
-        return [] unless DESTRUCTIVE_PASSTHROUGH.include?(command)
-
+      when *STOP_PASSTHROUGH
+        # stop/kill only guard the db when it is named explicitly; without an
+        # explicit service the db is skipped from the stop (see stop_excluding_db?)
+        args
+      when *DESTRUCTIVE_PASSTHROUGH
         # destructive passthrough without an explicit service hits every service (db included)
         args.empty? ? [Configuration.db_service] : args
+      else
+        []
       end
     end
 
@@ -174,7 +181,11 @@ module Mobydock
       email = args[0]
       return Helpers.launch if env != "dev" && Validator.blank?(email)
 
-      Commands.launch(env: env, email: Validator.blank?(email) ? nil : email)
+      Commands.launch(
+        env: env,
+        email: Validator.blank?(email) ? nil : email,
+        migrate_service: Configuration.migrate_service(env)
+      )
     end
 
     def perform_backup_db
@@ -182,6 +193,12 @@ module Mobydock
       return Helpers.backup_db if Validator.blank?(env) || blank_db_service
 
       Commands.backup_db(env: env)
+    end
+
+    def perform_backup_db_ls
+      return Helpers.backup_db_ls if Validator.blank?(env)
+
+      Commands.backup_db_ls(env: env)
     end
 
     def perform_restore_db
@@ -205,7 +222,25 @@ module Mobydock
       )
     end
 
+    def perform_rebuild
+      blank_db_service = Validator.blank?(Configuration.db_service)
+      return Helpers.rebuild if Validator.blank?(env) || blank_db_service
+
+      Commands.rebuild(env: env)
+    end
+
+    def stop_excluding_db?
+      return false if @force
+      return false unless STOP_PASSTHROUGH.include?(command)
+      return false unless args.empty?
+      return false unless Configuration.protected_env?(env)
+
+      !Validator.blank?(Configuration.db_service)
+    end
+
     def perform_default
+      return Commands.stop_excluding_db(env: env, command: command) if stop_excluding_db?
+
       Commands.default(env: env, command: command, args: args)
     end
   end

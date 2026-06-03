@@ -122,6 +122,23 @@ module Mobydock
       ENV.delete("MOBYDOCK_ELASTIC_IP_ALLOC_STG")
     end
 
+    def test_aws_region_extracted_from_create_opts
+      ENV["MOBYDOCK_MACHINE_CREATE_OPTS_PRD"] =
+        "--amazonec2-region eu-west-1 --amazonec2-instance-type t2.medium"
+
+      assert_equal "eu-west-1", Configuration.aws_region("prd")
+    ensure
+      ENV.delete("MOBYDOCK_MACHINE_CREATE_OPTS_PRD")
+    end
+
+    def test_aws_region_without_region_in_create_opts
+      ENV["MOBYDOCK_MACHINE_CREATE_OPTS_PRD"] = "--amazonec2-instance-type t2.medium"
+
+      assert_nil Configuration.aws_region("prd")
+    ensure
+      ENV.delete("MOBYDOCK_MACHINE_CREATE_OPTS_PRD")
+    end
+
     def test_machine_driver_is_always_amazonec2
       ENV["MOBYDOCK_MACHINE_DRIVER"] = "virtualbox"
 

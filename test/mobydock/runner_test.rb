@@ -448,6 +448,32 @@ module Mobydock
       end
     end
 
+    def test_backup_db_ls_success
+      expected_response = "backup-db-ls-command"
+
+      with_configuration_mocked do
+        Commands.stub(:backup_db_ls, expected_response) do
+          runner = Runner.new(command: "backup-db-ls", env: env)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_backup_db_ls_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "backup-db-ls", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
     def test_restore_db_success
       expected_response = "restore-db-command"
 
@@ -485,6 +511,49 @@ module Mobydock
         Configuration.stub(:db_service, nil) do
           Helpers.stub(:restore_db, expected_response) do
             runner = Runner.new(command: "restore-db", env: env, args: ["backups/dump.sql"])
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_rebuild_success
+      expected_response = "rebuild-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, "db") do
+          Commands.stub(:rebuild, expected_response) do
+            runner = Runner.new(command: "rebuild", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_rebuild_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "rebuild", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
+    def test_rebuild_return_helper_without_db_service
+      expected_response = "helper rebuild"
+
+      with_configuration_mocked do
+        Configuration.stub(:db_service, nil) do
+          Helpers.stub(:rebuild, expected_response) do
+            runner = Runner.new(command: "rebuild", env: env)
             response = runner.call
 
             assert_equal expected_response, response
@@ -556,6 +625,72 @@ module Mobydock
 
               assert_equal expected_response, response
             end
+          end
+        end
+      end
+    end
+
+    def test_bare_stop_in_protected_env_excludes_db
+      expected_response = "stop-excluding-db"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Commands.stub(:stop_excluding_db, expected_response) do
+              runner = Runner.new(command: "stop", env: env, args: [])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_stop_with_force_stops_everything
+      expected_response = "default-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Commands.stub(:default, expected_response) do
+              runner = Runner.new(command: "stop", env: env, args: %w(--force))
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_stop_db_explicitly_is_blocked
+      expected_response = "db protected"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Configuration.stub(:db_service, "db") do
+            Helpers.stub(:db_protected, expected_response) do
+              runner = Runner.new(command: "stop", env: env, args: ["db"])
+              response = runner.call
+
+              assert_equal expected_response, response
+            end
+          end
+        end
+      end
+    end
+
+    def test_bare_stop_in_unprotected_env_uses_default
+      expected_response = "default-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, false) do
+          Commands.stub(:default, expected_response) do
+            runner = Runner.new(command: "stop", env: env, args: [])
+            response = runner.call
+
+            assert_equal expected_response, response
           end
         end
       end

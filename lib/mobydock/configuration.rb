@@ -50,6 +50,11 @@ module Mobydock
       alloc.empty? ? nil : alloc
     end
 
+    def aws_region(env)
+      match = machine_create_opts(env).match(/--amazonec2-region\s+(\S+)/)
+      match && match[1]
+    end
+
     def deploy_services(env)
       map = ENV.fetch("MOBYDOCK_DEPLOY_SERVICES_#{env.upcase}") do
         ENV.fetch("MOBYDOCK_DEPLOY_SERVICES", "")
