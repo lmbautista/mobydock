@@ -45,6 +45,8 @@ module Mobydock
           "update-all         Update multiple services and regenerate the entire stack\n" \
           "setup-ssl          Set up HTTPS (mkcert for dev, LetsEncrypt for production)\n" \
           "start              Start or create docker-machine for env\n" \
+          "shutdown           Stop the docker-machine instance for env " \
+          "(protected envs require --force)\n" \
           "login              Activate docker-machine env (eval $(mobydock [ENV] login))\n" \
           "logout             Deactivate docker-machine env and clear MOBYDOCK_ENV\n" \
           "ls                 List the docker-machines (mobydock ls -> docker-machine ls)\n" \

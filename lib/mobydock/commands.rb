@@ -10,6 +10,7 @@ module Mobydock
       COMPILE_ASSETS = "compile-assets",
       SETUP_SSL = "setup-ssl",
       START = "start",
+      SHUTDOWN = "shutdown",
       LOGIN = "login",
       LOGOUT = "logout",
       DESTROY = "destroy",
@@ -175,6 +176,22 @@ module Mobydock
       "fi"
     end
 
+    def shutdown(env:)
+      machine = Configuration.machine_for(env)
+      return "echo 'No docker-machine configured for #{env}'" unless machine
+
+      "status=$(docker-machine status #{machine} 2>&1) ; " \
+      "if [ \"$status\" = \"Stopped\" ]; then " \
+      "echo 'Machine #{machine} is already stopped, nothing to do' ; " \
+      "elif [ \"$status\" = \"Running\" ]; then " \
+      "echo 'Stopping machine #{machine}...' ; " \
+      "docker-machine stop #{machine} ; " \
+      "echo '✅ Machine #{machine} is now stopped' ; " \
+      "else " \
+      "echo 'Machine #{machine} not found' ; " \
+      "fi"
+    end
+
     def login(env:)
       machine = Configuration.machine_for(env)
       base = machine ? "docker-machine env #{machine}" : "docker-machine env -u"
@@ -305,6 +322,7 @@ module Mobydock
         command << "#{docker_compose_prefix} run --rm #{migrate_service} rails db:migrate"
       end
       command << "#{docker_compose_prefix} up -d"
+      command << "docker image prune -f"
       command << "echo '✅ Deploy complete'"
 
       command.compact.join(" ; ")

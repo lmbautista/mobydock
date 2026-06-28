@@ -46,6 +46,7 @@ module Mobydock
       when Commands::COMPILE_ASSETS then perform_compile_assets
       when Commands::SETUP_SSL then perform_setup_ssl
       when Commands::START then perform_start
+      when Commands::SHUTDOWN then perform_shutdown
       when Commands::LOGIN then perform_login
       when Commands::LOGOUT then perform_logout
       when Commands::DESTROY then perform_destroy
@@ -154,6 +155,13 @@ module Mobydock
       return Helpers.start if Validator.blank?(env)
 
       Commands.start(env: env)
+    end
+
+    def perform_shutdown
+      return Helpers.shutdown if Validator.blank?(env)
+      return Helpers.shutdown_protected(env) if Configuration.protected_env?(env) && !@force
+
+      Commands.shutdown(env: env)
     end
 
     def perform_login

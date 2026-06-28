@@ -199,6 +199,36 @@ module Mobydock
       end
     end
 
+    def test_shutdown_without_machine
+      expected_result = "echo 'No docker-machine configured for dev'"
+
+      Configuration.stub(:machine_for, nil) do
+        result = Commands.shutdown(env: "dev")
+        assert_equal expected_result, result
+      end
+    end
+
+    def test_shutdown_stops_running_machine
+      expected_result =
+        "status=$(docker-machine status plantcare-beta 2>&1) ; " \
+        "if [ \"$status\" = \"Stopped\" ]; then " \
+        "echo 'Machine plantcare-beta is already stopped, nothing to do' ; " \
+        "elif [ \"$status\" = \"Running\" ]; then " \
+        "echo 'Stopping machine plantcare-beta...' ; " \
+        "docker-machine stop plantcare-beta ; " \
+        "echo '✅ Machine plantcare-beta is now stopped' ; " \
+        "else " \
+        "echo 'Machine plantcare-beta not found' ; " \
+        "fi"
+
+      Configuration.stub(:machine_for, "plantcare-beta") do
+        result = Commands.shutdown(env: "stg")
+
+        assert result
+        assert_equal expected_result, result
+      end
+    end
+
     def test_login_without_machine_disconnects
       expected_result = "docker-machine env -u ; echo 'export MOBYDOCK_ENV=dev'"
 
@@ -464,6 +494,7 @@ module Mobydock
         "docker pull lmbautista/plantcare:latest ; " \
         "docker-compose -f docker-compose-prd.yml build --no-cache --pull ; " \
         "docker-compose -f docker-compose-prd.yml up -d ; " \
+        "docker image prune -f ; " \
         "echo '✅ Deploy complete'"
 
       with_mocked_base_path do
@@ -492,6 +523,7 @@ module Mobydock
         "echo '📦 Running migrations on api-plantcare...' ; " \
         "docker-compose -f docker-compose-prd.yml run --rm api-plantcare rails db:migrate ; " \
         "docker-compose -f docker-compose-prd.yml up -d ; " \
+        "docker image prune -f ; " \
         "echo '✅ Deploy complete'"
 
       with_mocked_base_path do

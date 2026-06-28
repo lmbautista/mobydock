@@ -49,6 +49,8 @@ module Mobydock
       help_text << "update-all         Update multiple services and regenerate the entire stack"
       help_text << "setup-ssl          Set up HTTPS (mkcert for dev, LetsEncrypt for production)"
       help_text << "start              Start or create docker-machine for env"
+      help_text << "shutdown           Stop the docker-machine instance for env " \
+                 "(protected envs require --force)"
       help_text << "login              Activate docker-machine env (eval $(mobydock [ENV] login))"
       help_text << "logout             Deactivate docker-machine env and clear MOBYDOCK_ENV"
       help_text << "ls                 List the docker-machines (mobydock ls -> docker-machine ls)"
@@ -97,6 +99,20 @@ module Mobydock
 
     def start
       "mobydock [ENVIRONMENT] start"
+    end
+
+    def shutdown
+      "mobydock [ENVIRONMENT] shutdown"
+    end
+
+    def shutdown_protected(env)
+      message = []
+      message << "🛡️  This stops the remote instance for '#{env}',"
+      message << "which is a protected environment (see MOBYDOCK_PROTECTED_ENVS)."
+      message << ""
+      message << "Re-run with --force if you really intend to do this:"
+      message << "  mobydock #{env} shutdown --force"
+      "echo '#{message.join("\n")}'"
     end
 
     def login

@@ -275,6 +275,64 @@ module Mobydock
       end
     end
 
+    def test_shutdown_success_on_unprotected_env
+      expected_response = "shutdown-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, false) do
+          Commands.stub(:shutdown, expected_response) do
+            runner = Runner.new(command: "shutdown", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_shutdown_blocked_on_protected_env_without_force
+      expected_response = "shutdown protected"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Helpers.stub(:shutdown_protected, expected_response) do
+            runner = Runner.new(command: "shutdown", env: env)
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_shutdown_success_on_protected_env_with_force
+      expected_response = "shutdown-command"
+
+      with_configuration_mocked do
+        Configuration.stub(:protected_env?, true) do
+          Commands.stub(:shutdown, expected_response) do
+            runner = Runner.new(command: "shutdown", env: env, args: %w(--force))
+            response = runner.call
+
+            assert_equal expected_response, response
+          end
+        end
+      end
+    end
+
+    def test_shutdown_return_helper_with_env_blank
+      expected_response = "helper global"
+
+      with_configuration_mocked do
+        Helpers.stub(:global, expected_response) do
+          runner = Runner.new(command: "shutdown", env: nil)
+          response = runner.call
+
+          assert_equal expected_response, response
+        end
+      end
+    end
+
     def test_launch_success
       expected_response = "launch-command"
 
